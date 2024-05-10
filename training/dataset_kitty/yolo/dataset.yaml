@@ -1,0 +1,10 @@
+path: .
+train: images/train
+val: images/val
+
+names:
+  0: DontCare
+  1: Car
+  2: Cyclist
+  3: Pedestrian
+  4: Person_sitting
