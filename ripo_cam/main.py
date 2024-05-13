@@ -27,7 +27,9 @@ class Thread(QThread):
                 # Perform object detection on the frame
                 results = self.detect_objects(frame)
 
-                rgbImage = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                annotated_frame = results[0].plot()
+
+                rgbImage = cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB)
                 h, w, ch = rgbImage.shape
                 bytesPerLine = ch * w
                 convertToQtFormat = QImage(rgbImage.data, w, h, bytesPerLine, QImage.Format.Format_RGB888)
@@ -38,7 +40,8 @@ class Thread(QThread):
     def detect_objects(self, frame):
         # Perform object detection
         results = self.model(frame)
-        print(results)
+        # print(results)
+        return results
 
 class App(QWidget):
     def __init__(self):
