@@ -1,6 +1,5 @@
 import configparser
 import sys
-import cv2
 from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QCheckBox, QVBoxLayout, QLabel, QLineEdit, QFileDialog, \
     QSpinBox
 from PyQt6.QtCore import Qt
@@ -38,6 +37,9 @@ class ConfWindow(QWidget):
         self.rightBorderBox = QSpinBox(self)
         self.rightBorderBox.setMaximum(5000)
 
+        self.cameraIdLabel = QLabel("Camera ID:")
+        self.cameraId = QSpinBox(self)
+
         # Create a save button
         self.saveButton = QPushButton('Save', self)
         self.saveButton.clicked.connect(self.confwrite)
@@ -57,6 +59,8 @@ class ConfWindow(QWidget):
         layout.addWidget(self.leftBorderBox)
         layout.addWidget(self.rightBBLabel)
         layout.addWidget(self.rightBorderBox)
+        layout.addWidget(self.cameraIdLabel)
+        layout.addWidget(self.cameraId)
         layout.addWidget(self.saveButton)
         self.setLayout(layout)
 
@@ -76,6 +80,7 @@ class ConfWindow(QWidget):
         self.config['Model'] = {'path' : self.modelPathEdit.text()}
         self.config['Zone'] = {'left' : self.leftBorderBox.text(),
                                'right' : self.rightBorderBox.text()}
+        self.config['Camera'] = {'id' : self.cameraId.text()}
 
         with open('config.ini', 'w') as configfile:
             self.config.write(configfile)
@@ -93,6 +98,7 @@ class ConfWindow(QWidget):
             self.modelPathEdit.setText(self.config['Model']['path'])
             self.leftBorderBox.setValue(int(self.config['Zone']['left']))
             self.rightBorderBox.setValue(int(self.config['Zone']['right']))
+            self.cameraId.setValue(int(self.config['Camera']['id']))
         except:
             print("Problems with reading config file, default not set")
 
