@@ -11,6 +11,7 @@ python = "^3.11"
 opencv-python = "^4.9.0.80"
 pyqt6 = "^6.7.0"
 ultralytics = "^8.2.14"
+simpleaudio = "^1.0.4"
 
 
 [build-system]
