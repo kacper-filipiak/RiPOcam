@@ -121,7 +121,7 @@ class App(QWidget):
             self.modelPath = config['Model']['path']
             self.leftBorderBox = int(config['Zone']['left'])
             self.rightBorderBox = int(config['Zone']['right'])
-            self.cameraId = int(config['Camera']['id'])
+            self.cameraId = int(config['Camera']['id']) if config['Camera']['id'].isdecimal() else config['Camera']['id'] # Try parse as a camera id if not assume it is a video
         except:
             print("Config file not detected or malformed. Please use configurator first")
             self.label.setText("Config file not detected or malformed. Please use configurator first")
