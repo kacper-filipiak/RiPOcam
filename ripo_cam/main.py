@@ -2,7 +2,7 @@ import cv2
 import sys
 from PyQt6.QtWidgets import QWidget, QLabel, QApplication
 from PyQt6.QtCore import QThread, Qt, pyqtSignal, pyqtSlot
-from PyQt6.QtGui import QImage, QPixmap
+from PyQt6.QtGui import QImage, QPixmap, QIcon
 from ultralytics import YOLO
 from nava import play, stop_all
 #import simpleaudio
@@ -18,6 +18,7 @@ def playy():
 
 class QThread(QThread):
     changePixmap = pyqtSignal(QImage)
+    changeIcon = pyqtSignal(bool)
     def __init__(self, capid, piesi, samochod, rowerzysta, leftb, rightb, modelpath):
         super().__init__()
         self.capid = capid
@@ -44,8 +45,7 @@ class QThread(QThread):
                 # Perform object detection on the frame
                 results = self.detect_objects(frame)
 
-                annotated_frame = results[0].plot(boxes=False)
-                print(len(results[0].boxes))
+                annotated_frame = results[0].plot()
 
                 rgbImage = cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB)
 
@@ -65,24 +65,21 @@ class QThread(QThread):
         # Function to perform object detection on a single frame
     def detect_objects(self, frame):
         # Perform object detection
-        results = self.model(frame)
-        # print(results)
+        results = self.model(frame, verbose=False)
         return results
     def detect_in_danger_zone(self, boxes, w, h):
         alert = False;
         for box in boxes:
             x1, y1, x2, y2 = box.xyxy.numpy().ravel()
             
-            print(str(x1) + " - " + str(x2) + "\n" + str(y1) + "\n|\n" + str(y2) + "\n")
             if self.inside(x1, y1, w, h) or self.inside(x1, y2, w, h) or self.inside(x2, y1, w, h) or self.inside(x2, y2, w, h): 
                 alert = True;
         if alert:
-            print("Playing")
+            self.changeIcon.emit(True)
             if self.sound_id == None:
-                print("Playing start")
                 self.sound_id = play("alert.wav", async_mode=True, loop=True)
         else:
-            print("Playing stop")
+            self.changeIcon.emit(False)
             self.sound_id = None
             stop_all()
     def inside(self, x, y, w, h):
@@ -103,6 +100,11 @@ class App(QWidget):
     def setImage(self, image):
         self.label.setPixmap(QPixmap.fromImage(image))
 
+    @pyqtSlot(bool)
+    def setIcon(self, visible):
+        self.label1.setVisible(visible)
+
+
     def initUI(self):
         self.setWindowTitle("Video Processor")
         # create a label
@@ -110,9 +112,15 @@ class App(QWidget):
         self.label.move(280, 120)
         self.label.resize(640, 480)
 
+        self.label1 = QLabel(self)
+        pixmap = QPixmap('Alert.png')
+        self.label1.setPixmap(pixmap)
+        self.label1.move(280, 120)
+
         self.confread()
         th = QThread(self.cameraId, self.piesi, self.samochod, self.rowerzysta, self.leftBorderBox, self.rightBorderBox, self.modelPath)
         th.changePixmap.connect(self.setImage)
+        th.changeIcon.connect(self.setIcon)
         th.start()
 
         self.show()
