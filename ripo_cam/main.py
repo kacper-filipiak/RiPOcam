@@ -4,12 +4,19 @@ from PyQt6.QtWidgets import QWidget, QLabel, QApplication
 from PyQt6.QtCore import QThread, Qt, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QImage, QPixmap
 from ultralytics import YOLO
-import simpleaudio
+from nava import play, stop_all
+#import simpleaudio
 import configparser
 import numpy
 
+def playy():
+    print("Inside danger zone!!!")
+    play_object = self.alert_sound.play()
+    play_object.wait_done()
 
-class Thread(QThread):
+
+
+class QThread(QThread):
     changePixmap = pyqtSignal(QImage)
     def __init__(self, capid, piesi, samochod, rowerzysta, leftb, rightb, modelpath):
         super().__init__()
@@ -19,17 +26,16 @@ class Thread(QThread):
         self.rowerzysta = rowerzysta
         self.leftb = leftb
         self.rightb = rightb
-        self.alert_sound = simpleaudio.WaveObject.from_wave_file('alert.wav')
         
-        self.a1 = 1
-        self.b1 = 1
+        self.a1 = 2
+        self.b1 = 210
         self.a2 = 0
-        self.b2 = 600
-        self.a3 = -1
-        self.b3 = 1080
+        self.b2 = 150
+        self.a3 = -2.3
+        self.b3 = 418
 
         self.model = YOLO(modelpath)
-        self.danger_zone = self.create_danger_zone()
+        self.sound_id = None
     def run(self):
         cap = cv2.VideoCapture(self.capid)
         while True:
@@ -38,19 +44,19 @@ class Thread(QThread):
                 # Perform object detection on the frame
                 results = self.detect_objects(frame)
 
-                annotated_frame = results[0].plot()
+                annotated_frame = results[0].plot(boxes=False)
                 print(len(results[0].boxes))
-                self.detect_in_danger_zone(results[0].boxes)
 
                 rgbImage = cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB)
 
+                h, w, ch = rgbImage.shape
+                self.detect_in_danger_zone(results[0].boxes, w, h)
                 for i in range(0, rgbImage.shape[0]):
                     for j in range(0, rgbImage.shape[1]):
-                        if self.inside(j, i):
+                        if self.inside(j, i, w, h):
                             rgbImage[i, j, 1] = 0
                             rgbImage[i, j, 2] = 0
 
-                h, w, ch = rgbImage.shape
                 bytesPerLine = ch * w
                 convertToQtFormat = QImage(rgbImage.data, w, h, bytesPerLine, QImage.Format.Format_RGB888)
                 p = convertToQtFormat.scaled(640, 480, Qt.AspectRatioMode.KeepAspectRatio)
@@ -62,31 +68,31 @@ class Thread(QThread):
         results = self.model(frame)
         # print(results)
         return results
-    def detect_in_danger_zone(self, boxes):
+    def detect_in_danger_zone(self, boxes, w, h):
+        alert = False;
         for box in boxes:
             x1, y1, x2, y2 = box.xyxy.numpy().ravel()
             
             print(str(x1) + " - " + str(x2) + "\n" + str(y1) + "\n|\n" + str(y2) + "\n")
-            if self.inside(x1, y1) or self.inside(x1, y2) or self.inside(x2, y1) or self.inside(x2, y2):
-                play_object = self.alert_sound.play()
-                play_object.wait_done()
-                print("Inside danger zone!!!")
-
-    def inside(self, x, y):
-        if y > x * self.a2 + self.b2:
-            if x < y * self.a1 + self.b1:
-                if x > y * self.a3 + self.b3:
+            if self.inside(x1, y1, w, h) or self.inside(x1, y2, w, h) or self.inside(x2, y1, w, h) or self.inside(x2, y2, w, h): 
+                alert = True;
+        if alert:
+            print("Playing")
+            if self.sound_id == None:
+                print("Playing start")
+                self.sound_id = play("alert.wav", async_mode=True, loop=True)
+        else:
+            print("Playing stop")
+            self.sound_id = None
+            stop_all()
+    def inside(self, x, y, w, h):
+        x = int((float(x)/w) * 640)
+        y = int((float(y)/h) * 480)
+        if y > x * (-self.a2) + 480 - self.b2:
+            if y > (x - self.b1) * (-self.a1) + 480:
+                if y > (x - self.b3) * (-self.a3) + 480:
                     return True
         return False
-
-    def create_danger_zone(self):
-        zone = numpy.zeros((1080, 1920, 3))
-        for i in range(0, 1920):
-            for j in range(0, 1080):
-                if self.inside(j, i):
-                    zone[j, i, 0] = 1.0
-        print(zone)
-        return zone
 
 class App(QWidget):
     def __init__(self):
@@ -105,7 +111,7 @@ class App(QWidget):
         self.label.resize(640, 480)
 
         self.confread()
-        th = Thread(self.cameraId, self.piesi, self.samochod, self.rowerzysta, self.leftBorderBox, self.rightBorderBox, self.modelPath)
+        th = QThread(self.cameraId, self.piesi, self.samochod, self.rowerzysta, self.leftBorderBox, self.rightBorderBox, self.modelPath)
         th.changePixmap.connect(self.setImage)
         th.start()
 
