@@ -9,31 +9,23 @@ from nava import play, stop_all
 import configparser
 import numpy
 
-def playy():
-    print("Inside danger zone!!!")
-    play_object = self.alert_sound.play()
-    play_object.wait_done()
-
-
 
 class QThread(QThread):
     changePixmap = pyqtSignal(QImage)
     changeIcon = pyqtSignal(bool)
-    def __init__(self, capid, piesi, samochod, rowerzysta, leftb, rightb, modelpath):
+    def __init__(self, capid, piesi, samochod, rowerzysta, modelpath, a1, b1, a2, b2, a3, b3):
         super().__init__()
         self.capid = capid
         self.piesi = piesi
         self.samochod = samochod
         self.rowerzysta = rowerzysta
-        self.leftb = leftb
-        self.rightb = rightb
         
-        self.a1 = 2
-        self.b1 = 210
-        self.a2 = 0
-        self.b2 = 150
-        self.a3 = -2.3
-        self.b3 = 418
+        self.a1 = a1
+        self.b1 = b1
+        self.a2 = a2
+        self.b2 = b2
+        self.a3 = a3
+        self.b3 = b3
 
         self.model = YOLO(modelpath)
         self.sound_id = None
@@ -118,7 +110,7 @@ class App(QWidget):
         self.label1.move(280, 120)
 
         self.confread()
-        th = QThread(self.cameraId, self.piesi, self.samochod, self.rowerzysta, self.leftBorderBox, self.rightBorderBox, self.modelPath)
+        th = QThread(self.cameraId, self.piesi, self.samochod, self.rowerzysta, self.modelPath, self.a1, self.b1, self.a2, self.b2, self.a3, self.b3)
         th.changePixmap.connect(self.setImage)
         th.changeIcon.connect(self.setIcon)
         th.start()
@@ -133,9 +125,15 @@ class App(QWidget):
             self.samochod = True if config['Objects']['samochod'] == 'True' else False
             self.rowerzysta = True if config['Objects']['rowerzysta'] == 'True' else False
             self.modelPath = config['Model']['path']
-            self.leftBorderBox = int(config['Zone']['left'])
-            self.rightBorderBox = int(config['Zone']['right'])
             self.cameraId = int(config['Camera']['id']) if config['Camera']['id'].isdecimal() else config['Camera']['id'] # Try parse as a camera id if not assume it is a video
+            self.a1 = float(config['DangerZone']['a1'])
+            self.b1 = float(config['DangerZone']['b1'])
+            self.a2 = float(config['DangerZone']['a2'])
+            self.b2 = float(config['DangerZone']['b2'])
+            self.a3 = float(config['DangerZone']['a3'])
+            self.b3 = float(config['DangerZone']['b3'])
+
+
         except:
             print("Config file not detected or malformed. Please use configurator first")
             self.label.setText("Config file not detected or malformed. Please use configurator first")
